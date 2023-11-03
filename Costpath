@@ -1,0 +1,70 @@
+import arcpy
+
+# Check out Spatial Analyst extension
+arcpy.CheckOutExtension("Spatial")
+
+# Set up your environment workspace
+arcpy.env.workspace = "C:\Users\perpetua_okoye\Documents\ArcGIS\Projects\WSI project\Default.gdb"
+
+# Define your feature classes and cost raster
+water_bodies = "Waterbody_Centroid"
+wtps = "WSA_Centroid_Wb3"
+cost_raster = "cost_no_zeros2"
+
+try:
+    # Loop through each water treatment plant (wtp)
+    with arcpy.da.SearchCursor(wtps, ["SHAPE@", "ORIG_FID"]) as wtp_cursor:
+        for wtp_row in wtp_cursor:
+            wtp_shape = wtp_row[0]
+            wtp_number = wtp_row[1]
+
+            try:
+                # Use a search cursor to find the corresponding water body
+                with arcpy.da.SearchCursor(water_bodies, ["SHAPE@", "NEAR_FID"]) as wb_cursor:
+                    for wb_row in wb_cursor:
+                        wb_shape = wb_row[0]
+                        wb_number = wb_row[1]
+
+                        # Check if the numbers match
+                        if wb_number == wtp_number:
+                            try:
+                                # Define the output names for the Cost Distance and Backlink rasters
+                                out_distance_raster = f"pathDistFromWToR {wb_number}"
+                                out_backlink_raster = f"pathbacklinkFromWToR {wb_number}"
+
+                                # Calculate the cost distance and backlink
+                                out_cost_distance, out_backlink = arcpy.sa.CostDistance(
+                                    wb_shape, 
+                                    cost_raster, 
+                                    "", 
+                                    out_backlink_raster
+                                )
+
+                                # Save the outputs
+                                out_cost_distance.save(out_distance_raster)
+                                out_backlink.save(out_backlink_raster)
+
+                                # Compute the cost path
+                                out_cost_path = arcpy.sa.CostPath(
+                                    wtp_shape, 
+                                    out_distance_raster, 
+                                    out_backlink_raster, 
+                                    "EACH_CELL", 
+                                    "PATHDISTANCE"
+                                )
+                                
+                                # Save the cost path output
+                                out_cost_path.save(f"cost_path_{wb_number}")
+
+                            except Exception as e:
+                                print(f"Error processing cost analysis for water body {wb_number}: {str(e)}")
+
+                            break  # Break out of the inner loop once a match is found
+
+            except Exception as e:
+                print(f"Error accessing water body data: {str(e)}")
+
+    print("Process completed.")
+
+except Exception as e:
+    print(f"Error in the script: {str(e)}")
