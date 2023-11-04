@@ -1,3 +1,31 @@
+import seaborn as sns
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import MinMaxScaler
+
+# Your data
+data = pd.DataFrame({
+    'WAI': [44150.4, 570801.6, 2283206.4, 1865780136, 454118.4, 53611.2, 2273745.6, 0, 5733244.8, 463579.2, 15768, 44150.4, 186062.4, 728481.6, 15768, 22075.2],
+    'WQI': [1.660792919, 2.963261568, 1.218902971, 1.97657092, 0.640704676, 19.99922843, 0.784106972, 0.487146554, 0.846862809, 2.909131907, 0.737343604, 0.947842704, 2.846025364, 1.183940985, 0.737343604, 2.044479677],
+    'ERI': [138, 302, 946, 632, 676, 198, 742, 481, 317, 535, 844, 212, 208, 642, 153, 776]
+})
+
+# Initialize the MinMaxScaler
+scaler = MinMaxScaler()
+
+# Fit and transform the data
+data_normalized = pd.DataFrame(scaler.fit_transform(data), columns=data.columns)
+
+# Set the figure size
+sns.set(style="whitegrid", rc={"figure.figsize": (10, 8)})  # Adjust the size as needed
+
+# Create the pairplot
+sns.pairplot(data_normalized)
+plt.suptitle('Normalized Pairwise Scatter Plots', y=1.02)  # y=1.02 puts the title a little above the plots
+plt.show()
+
+
+
 import numpy as np
 
 # Calculate quartiles for each variable
