@@ -1,0 +1,35 @@
+import numpy as np
+
+# Calculate quartiles for each variable
+wai_quartiles = data['WAI'].quantile([0.25, 0.5, 0.75])
+wqi_quartiles = data['WQI'].quantile([0.25, 0.5, 0.75])
+eri_quartiles = data['ERI'].quantile([0.25, 0.5, 0.75])
+
+# A function to classify scenarios based on the quartiles
+def classify_scenario(row):
+    wai_high = row['WAI'] >= wai_quartiles[0.75]
+    wqi_high = row['WQI'] >= wqi_quartiles[0.75]
+    eri_low = row['ERI'] <= eri_quartiles[0.25]
+    wai_low = row['WAI'] <= wai_quartiles[0.25]
+    wqi_low = row['WQI'] <= wqi_quartiles[0.25]
+    
+    if wai_high and wqi_high:
+        return 'MESID'  # Most Efficient Supply Intake Development
+    elif wai_high and not wqi_high and eri_low:
+        return 'MESIO'  # Minimalist and Efficient Supply Intake Optimization
+    elif wai_low and wqi_low and not eri_low:
+        return 'LCMRD'  # Lowest Cost Maximum Resource Delivery
+    elif not wai_low and not wqi_low and eri_low:
+        return 'IRDev'  # Inequality Resource Development
+    elif wai_high and not wqi_high and not eri_low:
+        return 'RSIM'  # Reservoir Supply Intake Maximization
+    else:
+        return 'None'
+
+# Apply the function to the DataFrame to create a new 'Scenario' column
+data['Scenario'] = data.apply(classify_scenario, axis=1)
+
+# Plot the pairplot with hue set to the new 'Scenario' column
+sns.pairplot(data, hue='Scenario', plot_kws={'alpha': 0.5})
+plt.suptitle('Pairwise Scatter Plots', y=1.02)  # Title slightly above the plots
+plt.show()
