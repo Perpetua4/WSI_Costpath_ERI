@@ -24,7 +24,7 @@ sns.pairplot(data_normalized)
 plt.suptitle('Normalized Pairwise Scatter Plots', y=1.02)  # y=1.02 puts the title a little above the plots
 plt.show()
 
-
+#Applying scenarios
 
 import numpy as np
 
@@ -61,3 +61,58 @@ data['Scenario'] = data.apply(classify_scenario, axis=1)
 sns.pairplot(data, hue='Scenario', plot_kws={'alpha': 0.5})
 plt.suptitle('Pairwise Scatter Plots', y=1.02)  # Title slightly above the plots
 plt.show()
+
+#sensititvty analysis based on varying qaurtiles
+
+import pandas as pd
+import numpy as np
+
+# Your data from the previous step
+data = pd.DataFrame({
+    # ... (your data goes here)
+})
+
+# Calculate the initial quartiles for WAI, WQI, and ERI
+wai_quartiles = data['WAI'].quantile([0.25, 0.5, 0.75])
+wqi_quartiles = data['WQI'].quantile([0.25, 0.5, 0.75])
+eri_quartiles = data['ERI'].quantile([0.25, 0.5, 0.75])
+
+# Function to classify each scenario based on WAI, WQI, and ERI quartiles
+def classify_scenarios(row, wai_q, wqi_q, eri_q):
+    # Determine high and low values based on quartiles
+    wai_high = row['WAI'] >= wai_q[0.75]
+    wqi_high = row['WQI'] >= wqi_q[0.75]
+    eri_low = row['ERI'] <= eri_q[0.25]
+
+    # Define the scenario names and their priority logic
+    scenarios = {
+        'MESIO': wai_high and wqi_high and not eri_low,
+        'MESID': wai_high and wqi_high and eri_low,
+        'LCMRD': not wai_high and not wqi_high and eri_low,
+        'IRDev': wai_high and not wqi_high and not eri_low,
+        'RSIM': not wai_high and wqi_high and not eri_low,
+    }
+    
+    # Assign the scenario based on the priority logic
+    for scenario, condition in scenarios.items():
+        if condition:
+            return scenario
+    return 'Other'  # For rows that don't match any scenario
+
+# Perform sensitivity analysis by adjusting the quartiles
+def sensitivity_analysis(data, wai_q_delta, wqi_q_delta, eri_q_delta):
+    # Adjust quartiles based on deltas
+    adjusted_wai_quartiles = wai_quartiles + wai_q_delta * np.array([1, 1, 1])
+    adjusted_wqi_quartiles = wqi_quartiles + wqi_q_delta * np.array([1, 1, 1])
+    adjusted_eri_quartiles = eri_quartiles - eri_q_delta * np.array([1, 1, 1])  # Lower ERI is better
+
+    # Classify scenarios with new quartiles
+    data['Scenario'] = data.apply(lambda row: classify_scenarios(row, adjusted_wai_quartiles, adjusted_wqi_quartiles, adjusted_eri_quartiles), axis=1)
+
+    # Return the scenario counts
+    return data['Scenario'].value_counts()
+
+# Example sensitivity analysis with deltas for each quartile
+sensitivity_results = sensitivity_analysis(data, wai_q_delta=10000, wqi_q_delta=10, eri_q_delta=50)
+print(sensitivity_results)
+
